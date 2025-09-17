@@ -1,0 +1,71 @@
+
+NASA Exoplanet Detection - Model Performance Report
+==================================================
+Generated: 2025-09-17 16:18:42
+
+Dataset Information:
+- Training samples: 7651
+- Test samples: 1913
+- Features: 20
+- Class distribution (training): {0: 3877, 1: 3774}
+
+Model Performance Summary:
+
+LightGBM:
+  - Accuracy:  0.9090
+  - Precision: 0.9239
+  - Recall:    0.8887
+  - F1-Score:  0.9059
+  - AUC:       0.9741
+
+RandomForest:
+  - Accuracy:  0.9132
+  - Precision: 0.9400
+  - Recall:    0.8802
+  - F1-Score:  0.9091
+  - AUC:       0.9751
+
+ExtraTrees:
+  - Accuracy:  0.9101
+  - Precision: 0.9446
+  - Recall:    0.8685
+  - F1-Score:  0.9050
+  - AUC:       0.9724
+
+AdaBoost:
+  - Accuracy:  0.9101
+  - Precision: 0.9186
+  - Recall:    0.8971
+  - F1-Score:  0.9077
+  - AUC:       0.9708
+
+XGBoost:
+  - Accuracy:  0.9106
+  - Precision: 0.9242
+  - Recall:    0.8918
+  - F1-Score:  0.9077
+  - AUC:       0.9739
+
+Stacking:
+  - Accuracy:  0.9096
+  - Precision: 0.9278
+  - Recall:    0.8855
+  - F1-Score:  0.9061
+  - AUC:       0.9748
+
+Best Performing Model: RandomForest
+- Best F1-Score: 0.9091
+
+Research Comparison:
+- Target from "Exoplanet detection using machine learning" (2022): AUC = 0.948
+- Our best AUC: 0.9751
+- Target from "Assessment of Ensemble-Based ML" (2024): >80% accuracy
+- Our best accuracy: 91.3%
+
+Feature Engineering Impact:
+- Used domain knowledge for feature creation
+- Engineered features include period/duration ratios, stellar luminosity
+- Preprocessing includes missing value imputation and standardization
+
+Cross-Validation Results:
+(See cross-validation output above for detailed CV scores)

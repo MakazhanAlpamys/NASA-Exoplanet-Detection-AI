@@ -1,122 +1,371 @@
 # 🌌 NASA Exoplanet Detection AI
 
-Advanced machine learning system to identify exoplanet candidates from NASA mission data (Kepler, K2, TESS). Ships with an ensemble pipeline and a Streamlit web app for manual and batch predictions, model comparison, explainability (SHAP), and external validation.
+> Advanced machine learning system for identifying exoplanet candidates from NASA mission data (Kepler, K2, TESS)
 
-## ✨ Features
-- Ensemble models: LightGBM, RandomForest, ExtraTrees, AdaBoost, XGBoost, Stacking
-- Per‑prediction model selection + “Compare all models”
-- CSV batch predictions with optional multi‑model comparison
-- External Validation page (TOI & K2)
-- Threshold slider + optional probability calibration
-- SHAP explanation for a single sample (class‑1 selection and robust plotting)
-- Retrain/Tuning panel (quick RandomForest/LightGBM params)
-- Export HTML performance report
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.0+-red.svg)](https://streamlit.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 📁 Project Structure
+---
+
+## 🎯 Overview
+
+This project combines state-of-the-art ensemble learning with an intuitive web interface to detect exoplanets from NASA telescope data. The system features model comparison, explainability through SHAP, and comprehensive validation capabilities.
+
+### Key Capabilities
+
+| Feature | Description |
+|---------|-------------|
+| 🤖 **Ensemble Models** | LightGBM, RandomForest, ExtraTrees, AdaBoost, XGBoost, Stacking |
+| 🔍 **Model Selection** | Per-prediction model choice with full comparison mode |
+| 📊 **Batch Processing** | CSV upload with multi-model analysis |
+| ✅ **External Validation** | Independent TOI & K2 dataset testing |
+| 🎚️ **Threshold Control** | Adjustable decision boundaries with probability calibration |
+| 💡 **Explainability** | SHAP-powered feature importance analysis |
+| 🔧 **Retraining** | Quick parameter tuning for RandomForest and LightGBM |
+| 📈 **Reporting** | Exportable HTML performance reports |
+
+---
+
+## 📂 Project Structure
+
 ```
-.
-├─ data_preprocessing.py   # Loading, cleaning, feature engineering, scaling/imputing, external feature mapping
-├─ models.py               # Create/train/evaluate/save/load models; predict
-├─ train_models.py         # End‑to‑end training + reports
-├─ web_app.py              # Streamlit app (UI)
-├─ normalize_external_csvs.py # Utility to normalize TOI/K2 CSV copies
-├─ generate_test_data.py   # Mock CSV generators
-├─ reports/                # Generated plots and text report
-├─ *.csv                   # KOI / TOI / K2 datasets (NASA)
-└─ exoplanet_models_*.joblib
+nasa-exoplanet-detection/
+│
+├── 🐍 data_preprocessing.py      # Data loading, cleaning, feature engineering
+├── 🤖 models.py                  # Model creation, training, evaluation
+├── 🚀 train_models.py            # End-to-end training pipeline
+├── 🌐 web_app.py                 # Streamlit web application
+├── 🔧 normalize_external_csvs.py # TOI/K2 CSV normalizer
+├── 🧪 generate_test_data.py      # Mock CSV generators
+│
+├── 📁 data/
+│   ├── Kepler Objects of Interest (KOI).csv
+│   ├── TESS Objects of Interest (TOI).csv
+│   └── K2 Planets and Candidates.csv
+│
+├── 📁 reports/                   # Generated performance reports
+├── 📁 models/                    # Trained model files (*.joblib)
+│
+└── 📄 requirements.txt
 ```
+
+---
 
 ## 🚀 Quick Start
-1) Create the environment and install dependencies
+
+### 1️⃣ Environment Setup
+
 ```bash
+# Create virtual environment
 python -m venv nasa_exoplanet_env
+
+# Activate environment
+# Windows:
 nasa_exoplanet_env\Scripts\activate
+# Linux/Mac:
+source nasa_exoplanet_env/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
-2) Place datasets in the project root (exact names):
-- `Kepler Objects of Interest (KOI).csv`
-- `TESS Objects of Interest (TOI).csv`
-- `K2 Planets and Candidates.csv`
 
-3) (Optional) Train models if joblib files aren’t present
+### 2️⃣ Prepare Datasets
+
+Place the following files in your project root (exact filenames required):
+
+- ✅ `Kepler Objects of Interest (KOI).csv`
+- ✅ `TESS Objects of Interest (TOI).csv`
+- ✅ `K2 Planets and Candidates.csv`
+
+> 💡 **Tip**: Download datasets from [NASA Exoplanet Archive](https://exoplanetarchive.ipst.edu/)
+
+### 3️⃣ Train Models (Optional)
+
 ```bash
 python train_models.py
 ```
 
-4) Run the app
+This generates model files (`exoplanet_models_*.joblib`) and performance reports.
+
+### 4️⃣ Launch Application
+
 ```bash
 streamlit run web_app.py
 ```
-Open `http://localhost:8501`.
 
-## 🖥️ App Pages
-- Home: overview & quick stats
-- Make Predictions:
-  - Manual Entry: input parameters, choose model, set threshold, optional calibration, compare all models
-  - Upload CSV: batch predictions; choose model or compare all; download results
-- Model Performance: metrics table/charts; export HTML report
-- Feature Analysis: feature importances; SHAP (single sample)
-- External Validation: metrics on independent TOI & K2 datasets
-- About: background & implementation
+🌐 Open your browser to `http://localhost:8501`
 
-## 🧪 External Validation (TOI & K2)
-The app validates the best model on TESS TOI and K2 datasets and reports Accuracy/Precision/Recall/F1/AUC.
+---
 
-Data requirements (strict, case‑sensitive):
-- TOI file must contain column `tfopwg_disp` with values in {`CP`, `PC`, `FP`}.
-- K2 file must contain column `disposition` with values in {`CONFIRMED`, `CANDIDATE`, `FALSE POSITIVE`}.
+## 🖥️ Application Features
 
-Feature mapping to KOI schema happens automatically for TOI/K2 (e.g., `pl_orbper→koi_period`, `pl_trandurh→koi_duration`, `st_teff→koi_steff`, etc.). If `pl_trandurh` is missing, `pl_trandur` is used; if both are missing, a safe placeholder is injected so transforms succeed.
+### 📱 Navigation Pages
 
-Copies and fallback:
-- If present, the app prefers the copy files in the project root:
-  - `TESS Objects of Interest (TOI) copy.csv`
-  - `K2 Planets and Candidates copy.csv`
-  Otherwise it uses the original filenames.
+<table>
+<tr>
+<td width="30%"><b>🏠 Home</b></td>
+<td>Overview dashboard with quick statistics</td>
+</tr>
+<tr>
+<td><b>🔮 Make Predictions</b></td>
+<td>
+• <b>Manual Entry:</b> Input parameters, select model, adjust threshold<br>
+• <b>Upload CSV:</b> Batch predictions with downloadable results
+</td>
+</tr>
+<tr>
+<td><b>📊 Model Performance</b></td>
+<td>Comprehensive metrics, charts, and HTML export</td>
+</tr>
+<tr>
+<td><b>🔬 Feature Analysis</b></td>
+<td>Feature importance rankings and SHAP explanations</td>
+</tr>
+<tr>
+<td><b>✨ External Validation</b></td>
+<td>Independent testing on TOI and K2 datasets</td>
+</tr>
+<tr>
+<td><b>ℹ️ About</b></td>
+<td>Project background and implementation details</td>
+</tr>
+</table>
 
-Normalization utility (optional but recommended):
+---
+
+## 🧬 External Validation System
+
+The application validates models against independent TESS TOI and K2 datasets, reporting:
+- Accuracy
+- Precision
+- Recall
+- F1 Score
+- ROC-AUC
+
+### 📋 Data Requirements
+
+#### TOI Dataset
+- **Required Column:** `tfopwg_disp`
+- **Valid Values:** `CP`, `PC`, `FP`
+
+#### K2 Dataset
+- **Required Column:** `disposition`
+- **Valid Values:** `CONFIRMED`, `CANDIDATE`, `FALSE POSITIVE`
+
+### 🔄 Feature Mapping
+
+The system automatically maps external dataset features to KOI schema:
+
+```
+TOI/K2 Feature    →    KOI Feature
+─────────────────────────────────────
+pl_orbper         →    koi_period
+pl_trandurh       →    koi_duration
+st_teff           →    koi_steff
+... (automatic mapping)
+```
+
+### 💾 Using Copy Files (Recommended)
+
+For safety, create copies of external datasets:
+- `TESS Objects of Interest (TOI) copy.csv`
+- `K2 Planets and Candidates copy.csv`
+
+Run normalization utility:
+
 ```bash
 python normalize_external_csvs.py
 ```
-This standardizes label values, trims whitespace, and tries to fill missing `ra/dec` from common alternatives. It operates in‑place on the copy files.
 
-Troubleshooting “No external validation data available”:
-- Open “Make Predictions” once to initialize the processor (fits scalers and establishes the training feature schema), then revisit External Validation.
-- Ensure required files and label values as above; run the normalizer if needed.
+This script:
+- ✅ Standardizes label values
+- ✅ Trims whitespace
+- ✅ Fills missing RA/Dec from alternatives
 
-## ⚙️ Threshold & Calibration
-- Threshold: trade‑off recall vs precision (more candidates vs fewer false alarms)
-- Calibration (isotonic): makes probabilities better calibrated for ranking/thresholding
+### 🔧 Troubleshooting "No external validation data"
 
-## 🧩 SHAP (single sample)
-The app selects class 1 (positive) explanation and uses robust waterfall rendering. If a meta‑ensemble has limited SHAP support, a tree model is preferred where applicable.
+1. **Initialize processor:** Open "Make Predictions" page once
+2. **Verify files:** Ensure required CSV files are present
+3. **Check labels:** Confirm disposition columns have valid values
+4. **Run normalizer:** Execute `normalize_external_csvs.py`
 
-## 🔁 Retrain/Tuning
-- Retrain from the sidebar.
-- Quick tuning updates parameters on already loaded models (no recreation) and recomputes scores.
+---
 
-## 🧪 Training & Reports
-`python train_models.py` trains all models on KOI, evaluates (hold‑out + CV), validates externally, and saves:
-- Models: `exoplanet_models_*.joblib`
-- Reports: `reports/model_performance_report.png`, `reports/performance_report.txt`
+## ⚙️ Advanced Features
 
-## 🧰 Test Data
+### 🎚️ Threshold Adjustment
+
+Balance between discovery and precision:
+
+| Setting | Effect |
+|---------|--------|
+| **Lower Threshold** | More candidates detected (↑ Recall, ↓ Precision) |
+| **Higher Threshold** | Fewer false alarms (↓ Recall, ↑ Precision) |
+
+### 📐 Probability Calibration
+
+Enable **Isotonic Calibration** for:
+- Improved probability estimates
+- Better ranking of candidates
+- Enhanced threshold reliability
+
+### 💡 SHAP Explanations
+
+Understand model decisions with:
+- Feature contribution waterfall plots
+- Class-specific explanations (positive class)
+- Robust visualization for ensemble models
+
+---
+
+## 🔄 Retraining & Tuning
+
+### Full Retraining
+Access from sidebar to rebuild models with updated data.
+
+### Quick Parameter Tuning
+Adjust hyperparameters without full retraining:
+- **RandomForest:** n_estimators, max_depth, min_samples_split
+- **LightGBM:** n_estimators, learning_rate, max_depth
+
+---
+
+## 🧪 Testing
+
+### Generate Test Data
+
 ```bash
 python generate_test_data.py
 ```
-Creates: `realistic_exoplanet_test_data.csv`, `simple_exoplanet_test_data.csv`, `large_exoplanet_test_data.csv`, `edge_case_exoplanet_test_data.csv` — upload via “Make Predictions → Upload CSV”.
 
-## 📜 License & Acknowledgments
-This project leverages NASA’s publicly available exoplanet datasets and builds on recent research in exoplanet detection with ensemble learning.
-- TransitDot/NOTES/ORACLE analytics
-- JWST readiness scoring
+Creates four test CSV files:
 
-References: `https://www.asc-csa.gc.ca/eng/satellites/neossat/`, `https://donnees-data.asc-csa.gc.ca/en/dataset/9ae3e718-8b6d-40b7-8aa4-858f00e84b30`, `https://www.asc-csa.gc.ca/eng/satellites/jwst/about.asp`.
+| File | Description |
+|------|-------------|
+| `realistic_exoplanet_test_data.csv` | Real-world parameter distributions |
+| `simple_exoplanet_test_data.csv` | Basic test cases |
+| `large_exoplanet_test_data.csv` | High-volume testing |
+| `edge_case_exoplanet_test_data.csv` | Boundary conditions |
 
-## 🛠 Troubleshooting
-- Models not loaded → refresh page; ensure joblib files or run training
-- SimpleImputer not fitted → open “Make Predictions” once or retrain
-- External validation empty → check filenames/labels as noted above
+Upload via **Make Predictions → Upload CSV**
+
+---
+
+## 📊 Training Pipeline
+
+Execute complete training workflow:
+
+```bash
+python train_models.py
+```
+
+**Outputs:**
+- 🤖 Model files: `exoplanet_models_*.joblib`
+- 📈 Performance plot: `reports/model_performance_report.png`
+- 📄 Text report: `reports/performance_report.txt`
+
+**Process includes:**
+1. Data loading and preprocessing
+2. Cross-validation (5-fold)
+3. Hold-out set evaluation
+4. External validation (TOI & K2)
+5. Model serialization
+
+---
+
+## 🛠️ Troubleshooting Guide
+
+| Issue | Solution |
+|-------|----------|
+| **Models not loaded** | Refresh page or run `train_models.py` |
+| **SimpleImputer error** | Visit "Make Predictions" page once |
+| **External validation empty** | Verify filenames and label columns |
+| **Feature mismatch** | Check dataset format matches requirements |
+| **Memory errors** | Reduce batch size or use smaller datasets |
+
+---
+
+## 🌟 Use Cases
+
+- 🔭 **Research:** Validate exoplanet candidates
+- 📚 **Education:** Learn ML in astronomy
+- 🧪 **Development:** Test detection algorithms
+- 📊 **Analysis:** Compare model performance
+- 🚀 **Production:** Deploy automated screening
+
+---
+
+## 📚 References & Acknowledgments
+
+This project builds upon NASA's publicly available exoplanet datasets and recent advances in astronomical machine learning.
+
+### Data Sources
+- [NASA Exoplanet Archive](https://exoplanetarchive.ipst.edu/)
+- Kepler/K2 Mission Data
+- TESS Mission Data
+
+### Related Technologies
+- TransitDot Analytics
+- ORACLE Detection Framework
+- JWST Readiness Scoring
+
+**External Links:**
+- [NEOSSat Satellite](https://www.asc-csa.gc.ca/eng/satellites/neossat/)
+- [CSA Data Portal](https://donnees-data.asc-csa.gc.ca/en/dataset/9ae3e718-8b6d-40b7-8aa4-858f00e84b30)
+- [James Webb Space Telescope](https://www.asc-csa.gc.ca/eng/satellites/jwst/about.asp)
+
+---
 
 ## 📄 License
-MIT
+
+```
+MIT License
+
+Copyright (c) 2025 NASA Exoplanet Detection AI
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
+
+### Development Setup
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+---
+
+## 📧 Contact & Support
+
+For questions, suggestions, or collaboration opportunities:
+- 📫 Open an issue on GitHub
+- 💬 Join discussions in the repository
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the astronomical community**
+
+⭐ Star this repository if you find it helpful!
+
+</div>

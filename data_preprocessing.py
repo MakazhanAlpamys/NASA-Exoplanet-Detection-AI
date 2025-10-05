@@ -16,6 +16,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 class ExoplanetDataProcessor:
@@ -50,7 +51,10 @@ class ExoplanetDataProcessor:
     def load_toi_dataset(self, file_path="TESS Objects of Interest (TOI).csv"):
         """Load TOI dataset for additional training/testing"""
         print("Loading TOI dataset...")
-        df = pd.read_csv(file_path, comment='#')
+        # Prefer normalized copy if present
+        copy_path = "TESS Objects of Interest (TOI) copy.csv"
+        chosen_path = copy_path if os.path.exists(copy_path) else file_path
+        df = pd.read_csv(chosen_path, comment='#')
         
         # Map dispositions to binary target
         # CP (Confirmed Planet) and PC (Planet Candidate) -> 1
@@ -70,7 +74,10 @@ class ExoplanetDataProcessor:
     def load_k2_dataset(self, file_path="K2 Planets and Candidates.csv"):
         """Load K2 dataset for additional validation"""
         print("Loading K2 dataset...")
-        df = pd.read_csv(file_path, comment='#')
+        # Prefer normalized copy if present
+        copy_path = "K2 Planets and Candidates copy.csv"
+        chosen_path = copy_path if os.path.exists(copy_path) else file_path
+        df = pd.read_csv(chosen_path, comment='#')
         
         # Map dispositions to binary target
         valid_dispositions = ['CONFIRMED', 'CANDIDATE', 'FALSE POSITIVE']
@@ -103,26 +110,43 @@ class ExoplanetDataProcessor:
                 # Position
                 'ra', 'dec'
             ]
-        elif dataset_type == 'toi':
-            # Key features from TOI dataset
-            feature_cols = [
-                # Orbital characteristics
-                'pl_orbper', 'pl_trandurh', 'pl_trandep',
-                # Planetary characteristics
-                'pl_rade', 'pl_insol', 'pl_eqt',
-                # Stellar characteristics  
-                'st_teff', 'st_logg', 'st_rad', 'st_tmag', 'st_dist',
+        elif dataset_type in ('toi', 'k2'):
+            # Map external (pl_*, st_*) columns to KOI schema (koi_*)
+            mapping = {
+                # Orbital/planet
+                'pl_orbper': 'koi_period',
+                'pl_trandurh': 'koi_duration',
+                'pl_trandep': 'koi_depth',
+                'pl_rade': 'koi_prad',
+                'pl_insol': 'koi_insol',
+                'pl_eqt': 'koi_teq',
+                # Stellar
+                'st_teff': 'koi_steff',
+                'st_logg': 'koi_slogg',
+                'st_rad': 'koi_srad',
+                'st_tmag': 'koi_kepmag',
                 # Position
-                'ra', 'dec'
-            ]
-        else:  # k2
-            # Key features from K2 dataset
+                'ra': 'ra',
+                'dec': 'dec',
+            }
+            df = df.copy()
+            for src, dst in mapping.items():
+                if src in df.columns and dst not in df.columns:
+                    df[dst] = df[src]
+
+            # Fallback: some external tables use pl_trandur (no h). Use it if hours column absent
+            if 'koi_duration' not in df.columns and 'pl_trandur' in df.columns:
+                df['koi_duration'] = df['pl_trandur']
+            # Ensure koi_duration exists even if neither duration column is present
+            if 'koi_duration' not in df.columns:
+                df['koi_duration'] = 0
+
+            # After mapping, reuse KOI feature list
             feature_cols = [
-                # Orbital characteristics
-                'pl_orbper', 'pl_rade', 'pl_insol', 'pl_eqt',
-                # Stellar characteristics
-                'st_teff', 'st_rad', 'st_mass', 'st_logg',
-                # Position
+                'koi_period', 'koi_duration', 'koi_depth', 'koi_impact',
+                'koi_prad', 'koi_teq', 'koi_insol',
+                'koi_steff', 'koi_slogg', 'koi_srad', 'koi_kepmag',
+                'koi_model_snr', 'koi_score',
                 'ra', 'dec'
             ]
         
@@ -280,28 +304,19 @@ class ExoplanetDataProcessor:
         if self.feature_columns is None:
             raise ValueError("Must fit on training data first")
         
-        # Get base features (without engineered ones)
-        base_features = [col for col in df.columns if col != 'target']
-        
-        # Create a dataframe with all required base features
-        aligned_df = pd.DataFrame(index=df.index)
-        
-        # Copy existing features
-        for col in base_features:
-            if col in df.columns:
-                aligned_df[col] = df[col]
-        
-        # Add missing features with median values
+        # Determine base training features (exclude engineered)
         training_base_features = [col for col in self.feature_columns 
-                                if not any(derived in col for derived in 
-                                         ['ratio', 'luminosity', 'theoretical', 'residual', 'strength'])]
-        
+                                  if not any(derived in col for derived in 
+                                             ['ratio', 'luminosity', 'theoretical', 'residual', 'strength'])]
+
+        # Strictly reindex to training features; drop any unseen columns
+        aligned_df = df.reindex(columns=training_base_features + ['target'])
+        # Fill any missing base features with 0; imputer will refine
         for col in training_base_features:
             if col not in aligned_df.columns:
-                aligned_df[col] = 0  # Will be handled by imputer
-        
-        aligned_df['target'] = df['target']
-        
+                aligned_df[col] = 0
+        # Ensure column order matches training
+        aligned_df = aligned_df[training_base_features + ['target']]
         return aligned_df
 
 if __name__ == "__main__":

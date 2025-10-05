@@ -222,11 +222,12 @@ class ExoplanetWebApp:
                     # Recreate models with updated params and retrain quickly
                     X_train, X_test, y_train, y_test = self.processor.prepare_training_data()
                     pipeline = self.ml_pipeline
-                    # Update RF/LGB params
-                    if 'RandomForest' in pipeline.base_models:
-                        pipeline.base_models['RandomForest'].set_params(n_estimators=rf_trees, max_depth=rf_depth)
-                    if 'LightGBM' in pipeline.base_models:
-                        pipeline.base_models['LightGBM'].set_params(n_estimators=lgb_trees, learning_rate=lgb_lr)
+                    # Update RF/LGB params on loaded models (no recreation)
+                    if 'RandomForest' in pipeline.models:
+                        pipeline.models['RandomForest'].set_params(n_estimators=rf_trees, max_depth=rf_depth)
+                    if 'LightGBM' in pipeline.models:
+                        pipeline.models['LightGBM'].set_params(n_estimators=lgb_trees, learning_rate=lgb_lr)
+                    # Retrain/fit the updated models if pipeline supports partial refit; else quick retrain
                     pipeline.train_models(X_train, y_train)
                     results = pipeline.evaluate_models(X_test, y_test, detailed=False)
                     st.session_state.model_scores = results
@@ -749,8 +750,26 @@ class ExoplanetWebApp:
                 explainer = shap.Explainer(best, X_train)
                 sample = X_test.iloc[[0]]
                 shap_values = explainer(sample)
-                st.write("Predicted probability:", float(best.predict_proba(sample)[:,1]))
-                st.pyplot(shap.plots.waterfall(shap_values[0], show=False))
+                # Ensure scalar for display
+                prob_pos = best.predict_proba(sample)[:, 1]
+                st.write("Predicted probability:", float(prob_pos[0]))
+                # Build a single-class Explanation for class 1 if multi-output
+                if hasattr(shap_values, 'values') and getattr(shap_values.values, 'ndim', 1) == 3:
+                    # shapes: (samples, classes, features)
+                    values = shap_values.values[0, 1, :]
+                    base_val = shap_values.base_values[0, 1]
+                    data_row = shap_values.data[0, :]
+                    feature_names = getattr(shap_values, 'feature_names', None)
+                    sv_to_plot = shap.Explanation(values=values, base_values=base_val, data=data_row, feature_names=feature_names)
+                else:
+                    # single-output already
+                    sv_to_plot = shap_values[0]
+                # Render via matplotlib figure to avoid scalar conversion issues
+                import matplotlib.pyplot as plt
+                plt.clf()
+                shap.plots.waterfall(sv_to_plot, show=False)
+                fig = plt.gcf()
+                st.pyplot(fig, clear_figure=True)
         except Exception as e:
             st.info(f"SHAP preview not available: {e}")
     
